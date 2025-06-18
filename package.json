@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "npm": "next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -13,8 +13,8 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.515.0",
     "next": "15.3.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-resizable-panels": "^3.0.3",
     "swagger-ui-react": "^5.24.2",
     "tailwind-merge": "^3.3.1"
@@ -23,8 +23,8 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "@types/swagger-ui-dist": "^3.30.5",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
