@@ -44,7 +44,7 @@ const extractSwaggerMethods = (swaggerJson: string, methodSpecs: string): string
 
 const SwaggerPage = () => {
   const [swaggerInput, setSwaggerInput] = useState('');
-  const [methodSpecs, setMethodSpecs] = useState('put:/pet,get:/pet/findByStatus,post:/pet/{petId}/uploadImage,get:/user/{username}');
+  const [methodSpecs, setMethodSpecs] = useState('');
   const [extractedResult, setExtractedResult] = useState('');
   const [extractedSpec, setExtractedSpec] = useState<object | null>(null);
   const [inputError, setInputError] = useState('');
@@ -78,7 +78,7 @@ const SwaggerPage = () => {
         // Auto-process if method specs are also provided
         if (methodSpecs.trim()) {
           setTimeout(() => {
-            handleGenerate();
+            processSwagger(value); // Pass the current value directly
           }, 500); // Small delay to avoid excessive processing
         }
       }
@@ -87,13 +87,15 @@ const SwaggerPage = () => {
     }
   };
 
-  const handleGenerate = () => {
-    // Handle generate button click
-    console.log('Generate button clicked');
-    console.log('Swagger input:', swaggerInput);
+  const processSwagger = (currentSwaggerInput?: string) => {
+    // Use the passed value or the current state
+    const inputToUse = currentSwaggerInput || swaggerInput;
+    
+    console.log('Processing swagger');
+    console.log('Swagger input:', inputToUse);
     console.log('Method specs:', methodSpecs);
     
-    if (!swaggerInput.trim()) {
+    if (!inputToUse.trim()) {
       setExtractedResult('Error: Please provide Swagger JSON input');
       setExtractedSpec(null);
       return;
@@ -105,7 +107,7 @@ const SwaggerPage = () => {
       return;
     }
 
-    const result = extractSwaggerMethods(swaggerInput, methodSpecs);
+    const result = extractSwaggerMethods(inputToUse, methodSpecs);
     setExtractedResult(result);
     
     // Try to parse the result for the SwaggerUI component
@@ -118,6 +120,10 @@ const SwaggerPage = () => {
     }
     
     console.log('Extraction result:', result);
+  };
+
+  const handleGenerate = () => {
+    processSwagger();
   };
 
   return (
