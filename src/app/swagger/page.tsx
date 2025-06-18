@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import SwaggerWrapper from "../../components/swagger-wrapper"
 
-// Function to extract only specified methods from Swagger JSON
+// Function to extract only specified methods from Swagger JSON and their referenced schemas
 const extractSwaggerMethods = (swaggerJson: string, methodSpecs: string): string => {
   try {
     const swagger = JSON.parse(swaggerJson);
@@ -23,18 +23,86 @@ const extractSwaggerMethods = (swaggerJson: string, methodSpecs: string): string
     // Create a new swagger object with filtered paths
     const filteredSwagger = {
       ...swagger,
-      paths: {}
+      paths: {},
+      components: swagger.components ? { ...swagger.components } : undefined
     };
 
-    // Filter paths based on specifications
+    // Set to track referenced schemas
+    const referencedSchemas = new Set<string>();
+    
+    // Helper function to recursively find schema references
+    const findSchemaReferences = (obj: unknown): void => {
+      if (typeof obj === 'object' && obj !== null) {
+        if (Array.isArray(obj)) {
+          obj.forEach(item => findSchemaReferences(item));
+        } else {
+          const objRecord = obj as Record<string, unknown>;
+          Object.keys(objRecord).forEach(key => {
+            if (key === '$ref' && typeof objRecord[key] === 'string') {
+              // Extract schema name from reference like "#/components/schemas/Pet"
+              const ref = objRecord[key] as string;
+              if (ref.startsWith('#/components/schemas/')) {
+                const schemaName = ref.replace('#/components/schemas/', '');
+                referencedSchemas.add(schemaName);
+              }
+            } else {
+              findSchemaReferences(objRecord[key]);
+            }
+          });
+        }
+      }
+    };
+
+    // Filter paths based on specifications and collect schema references
     specs.forEach(({ method, path }) => {
       if (swagger.paths && swagger.paths[path] && swagger.paths[path][method]) {
         if (!filteredSwagger.paths[path]) {
           filteredSwagger.paths[path] = {};
         }
-        filteredSwagger.paths[path][method] = swagger.paths[path][method];
+        const methodDef = swagger.paths[path][method];
+        filteredSwagger.paths[path][method] = methodDef;
+        
+        // Find all schema references in this method
+        findSchemaReferences(methodDef);
       }
     });
+
+    // Recursively resolve schema dependencies
+    const resolveSchemasDependencies = () => {
+      const initialSize = referencedSchemas.size;
+      
+      referencedSchemas.forEach(schemaName => {
+        if (swagger.components?.schemas?.[schemaName]) {
+          findSchemaReferences(swagger.components.schemas[schemaName]);
+        }
+      });
+      
+      // If we found new references, run again
+      if (referencedSchemas.size > initialSize) {
+        resolveSchemasDependencies();
+      }
+    };
+
+    // Resolve all schema dependencies
+    resolveSchemasDependencies();
+
+    // Filter components to only include referenced schemas
+    if (filteredSwagger.components && swagger.components?.schemas) {
+      filteredSwagger.components.schemas = {};
+      referencedSchemas.forEach(schemaName => {
+        if (swagger.components.schemas[schemaName]) {
+          filteredSwagger.components.schemas[schemaName] = swagger.components.schemas[schemaName];
+        }
+      });
+      
+      // Remove components section if no schemas are referenced
+      if (Object.keys(filteredSwagger.components.schemas).length === 0) {
+        delete filteredSwagger.components.schemas;
+        if (Object.keys(filteredSwagger.components).length === 0) {
+          delete filteredSwagger.components;
+        }
+      }
+    }
 
     return JSON.stringify(filteredSwagger, null, 2);
   } catch (error) {
